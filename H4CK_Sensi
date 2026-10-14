@@ -1,0 +1,811 @@
+openapi: 3.0.3
+info:
+  title: H4CK_Sensi API
+  description: |
+    API pública e administrativa do app H4CK_Sensi.
+    O objetivo é gerar sensis confiáveis para Free Fire, com suporte a:
+    - detecção de dispositivo
+    - geração por potência e DPI
+    - sensi por arma
+    - sensis de famosos
+    - sensi especial protegida por senha
+    - painel admin com CRUD de sensis e catalogo de dispositivos
+  version: 1.0.0
+  contact:
+    name: H4CK_Sensi
+    email: contato@h4cksensi.com
+servers:
+  - url: http://localhost:3001/api
+    description: Ambiente local de desenvolvimento
+  - url: https://api.h4cksensi.com
+    description: Produção
+
+tags:
+  - name: Public
+    description: Rotas públicas acessíveis sem login
+  - name: Admin
+    description: Rotas administrativas protegidas por autenticação
+  - name: Device
+    description: Operações relacionadas a detecção de marca/modelo/versão
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Brand:
+      type: object
+      required:
+        - id
+        - name
+        - slug
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Samsung
+        slug:
+          type: string
+          example: samsung
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DeviceModel:
+      type: object
+      required:
+        - id
+        - brandId
+        - modelName
+      properties:
+        id:
+          type: integer
+          example: 12
+        brandId:
+          type: integer
+          example: 1
+        modelName:
+          type: string
+          example: Galaxy A35
+        normalizedModel:
+          type: string
+          example: galaxy a35
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PerformanceTier:
+      type: string
+      enum: [fraco, equilibrado, potente]
+      example: equilibrado
+
+    DpiTier:
+      type: string
+      enum: [baixo, medio, alto]
+      example: medio
+
+    Weapon:
+      type: string
+      enum:
+        - MP40
+        - M1887
+        - AK
+        - M4A1
+        - UMP45
+        - Vector
+        - FAMAS
+        - SCAR
+        - etc
+      example: MP40
+
+    SensiValues:
+      type: object
+      description: Estrutura flexível para valores da sensi
+      additionalProperties: true
+      example:
+        horizontal: 75
+        vertical: 88
+        ads: 31
+        scope: 24
+        notes: "Sensi testada para celular equilibrado"
+
+    Sensi:
+      type: object
+      required:
+        - id
+        - title
+        - performanceTier
+        - dpiTier
+        - isSpecial
+        - tested
+        - values
+      properties:
+        id:
+          type: integer
+          example: 55
+        title:
+          type: string
+          example: Sensi para Samsung Galaxy A35
+        description:
+          type: string
+          example: Sensibilidade recomendada para mira estável
+        performanceTier:
+          $ref: "#/components/schemas/PerformanceTier"
+        dpiTier:
+          $ref: "#/components/schemas/DpiTier"
+        weapon:
+          $ref: "#/components/schemas/Weapon"
+          nullable: true
+        deviceBrand:
+          type: string
+          example: Samsung
+          nullable: true
+        deviceModel:
+          type: string
+          example: Galaxy A35
+          nullable: true
+        isFamous:
+          type: boolean
+          example: false
+        famousHandle:
+          type: string
+          example: "@playerfamoso"
+          nullable: true
+        isSpecial:
+          type: boolean
+          example: false
+        tested:
+          type: boolean
+          example: true
+        values:
+          $ref: "#/components/schemas/SensiValues"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: Recurso não encontrado
+        details:
+          type: string
+          nullable: true
+          example: null
+
+    AdminLoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: joaozinw_2012
+        password:
+          type: string
+          format: password
+          example: "********"
+
+    AdminLoginResponse:
+      type: object
+      required:
+        - token
+        - user
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            username:
+              type: string
+              example: joaozinw_2012
+            role:
+              type: string
+              example: admin
+
+    DeviceDetectionRequest:
+      type: object
+      required:
+        - userAgent
+      properties:
+        userAgent:
+          type: string
+          example: Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/...
+
+    DeviceDetectionResponse:
+      type: object
+      properties:
+        detected:
+          type: boolean
+          example: true
+        brand:
+          type: string
+          nullable: true
+          example: Samsung
+        model:
+          type: string
+          nullable: true
+          example: Galaxy S24
+        version:
+          type: string
+          nullable: true
+          example: Android 14
+        fallback:
+          type: boolean
+          example: false
+
+    GenerateSensiRequest:
+      type: object
+      required:
+        - performanceTier
+        - dpiTier
+      properties:
+        brand:
+          type: string
+          example: Samsung
+        model:
+          type: string
+          example: Galaxy A35
+        performanceTier:
+          $ref: "#/components/schemas/PerformanceTier"
+        dpiTier:
+          $ref: "#/components/schemas/DpiTier"
+
+    SensiListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Sensi"
+        total:
+          type: integer
+          example: 12
+
+    ValidateSpecialPasswordRequest:
+      type: object
+      required:
+        - password
+      properties:
+        password:
+          type: string
+          format: password
+          example: "senha123"
+
+    ValidateSpecialPasswordResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          example: true
+        sensi:
+          $ref: "#/components/schemas/Sensi"
+          nullable: true
+
+    CreateOrUpdateSensiRequest:
+      type: object
+      required:
+        - title
+        - performanceTier
+        - dpiTier
+        - tested
+        - values
+      properties:
+        title:
+          type: string
+          example: Sensi MP40
+        description:
+          type: string
+          example: Sensibilidade testada para dispositivos equilibrados
+        performanceTier:
+          $ref: "#/components/schemas/PerformanceTier"
+        dpiTier:
+          $ref: "#/components/schemas/DpiTier"
+        weapon:
+          $ref: "#/components/schemas/Weapon"
+          nullable: true
+        deviceBrand:
+          type: string
+          nullable: true
+          example: Samsung
+        deviceModel:
+          type: string
+          nullable: true
+          example: Galaxy A35
+        isFamous:
+          type: boolean
+          example: false
+        famousHandle:
+          type: string
+          nullable: true
+          example: "@famoso"
+        isSpecial:
+          type: boolean
+          example: false
+        tested:
+          type: boolean
+          example: true
+        values:
+          $ref: "#/components/schemas/SensiValues"
+
+    BrandCatalogRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: Motorola
+
+    CreateModelRequest:
+      type: object
+      required:
+        - brandId
+        - modelName
+      properties:
+        brandId:
+          type: integer
+          example: 2
+        modelName:
+          type: string
+          example: Moto G Power
+
+paths:
+  /brands:
+    get:
+      tags: [Public]
+      summary: Lista marcas de celular suportadas
+      responses:
+        "200":
+          description: Lista de marcas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Brand"
+        "500":
+          description: Erro interno
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /models:
+    get:
+      tags: [Public]
+      summary: Busca modelos por marca ou texto
+      parameters:
+        - in: query
+          name: brand
+          schema:
+            type: string
+          required: false
+          description: Nome da marca ou slug
+          example: samsung
+        - in: query
+          name: query
+          schema:
+            type: string
+          required: false
+          description: Texto pesquisado no modelo
+          example: a35
+      responses:
+        "200":
+          description: Lista de modelos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeviceModel"
+        "400":
+          description: Requisição inválida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /device/detect:
+    post:
+      tags: [Device]
+      summary: Detecta marca, modelo e versão pelo user agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceDetectionRequest"
+      responses:
+        "200":
+          description: Resultado da detecção
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceDetectionResponse"
+        "400":
+          description: User agent ausente ou inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sensis/generate:
+    post:
+      tags: [Public]
+      summary: Gera uma sensi recomendada com base em marca/modelo/performance/DPI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateSensiRequest"
+      responses:
+        "200":
+          description: Retorna a sensi recomendada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sensi"
+        "404":
+          description: Nenhuma sensi encontrada para o filtro
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sensis/weapon/{weapon}:
+    get:
+      tags: [Public]
+      summary: Retorna sensis específicas por arma
+      parameters:
+        - in: path
+          name: weapon
+          required: true
+          schema:
+            $ref: "#/components/schemas/Weapon"
+          description: Nome da arma
+      responses:
+        "200":
+          description: Lista de sensis da arma
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SensiListResponse"
+        "404":
+          description: Nenhuma sensi para esta arma
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sensis/famous:
+    get:
+      tags: [Public]
+      summary: Lista sensis de jogadores famosos
+      responses:
+        "200":
+          description: Lista de sensis famosas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SensiListResponse"
+
+  /special/validate:
+    post:
+      tags: [Public]
+      summary: Valida senha da Sensi Especial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateSpecialPasswordRequest"
+      responses:
+        "200":
+          description: Senha válida e sensi retornada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidateSpecialPasswordResponse"
+        "403":
+          description: Senha inválida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Sensi especial não cadastrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tips/mira:
+    get:
+      tags: [Public]
+      summary: Retorna dicas e configurações de mira
+      responses:
+        "200":
+          description: Conteúdo educativo de mira
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    title:
+                      type: string
+                    content:
+                      type: string
+                    category:
+                      type: string
+                      enum: [mira, config, dicas]
+                    order:
+                      type: integer
+
+  /admin/login:
+    post:
+      tags: [Admin]
+      summary: Login do painel administrativo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginRequest"
+      responses:
+        "200":
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminLoginResponse"
+        "401":
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/sensis:
+    get:
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      summary: Lista todas as sensis cadastradas
+      parameters:
+        - in: query
+          name: weapon
+          schema:
+            $ref: "#/components/schemas/Weapon"
+          required: false
+        - in: query
+          name: isSpecial
+          schema:
+            type: boolean
+          required: false
+      responses:
+        "200":
+          description: Lista de sensis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SensiListResponse"
+        "401":
+          description: Não autorizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      summary: Cria uma nova sensi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrUpdateSensiRequest"
+      responses:
+        "201":
+          description: Sensi criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sensi"
+        "401":
+          description: Não autorizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/sensis/{id}:
+    put:
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      summary: Atualiza uma sensi existente
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrUpdateSensiRequest"
+      responses:
+        "200":
+          description: Sensi atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sensi"
+        "404":
+          description: Sensi não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      summary: Remove uma sensi
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sensi removida com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Sensi removida com sucesso
+        "404":
+          description: Sensi não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/brands:
+    get:
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      summary: Lista marcas do catálogo administrativo
+      responses:
+        "200":
+          description: Lista de marcas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Brand"
+
+    post:
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      summary: Cria uma marca
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrandCatalogRequest"
+      responses:
+        "201":
+          description: Marca criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Brand"
+
+  /admin/models:
+    get:
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      summary: Lista modelos cadastrados
+      responses:
+        "200":
+          description: Modelos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeviceModel"
+
+    post:
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      summary: Cria um modelo de celular
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateModelRequest"
+      responses:
+        "201":
+          description: Modelo criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceModel"
+
+  /admin/special/password:
+    put:
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      summary: Atualiza a senha da sensi especial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - newPassword
+              properties:
+                newPassword:
+                  type: string
+                  format: password
+                  e
